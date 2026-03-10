@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Unity WebGL Player | RhythmMasterProject</title>
+  </head>
+  <body style="text-align: center; padding: 0; border: 0; margin: 0;">
+    <canvas id="unity-canvas" width=1440 height=810 tabindex="-1" style="width: 1440px; height: 810px; background: #070816"></canvas>
+    <script src="Build/GameMusic.loader.js"></script>
+    <style>
+      #token-overlay {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0,0,0,0.75);
+        z-index: 9999;
+      }
+      #token-box {
+        background: #0b0e15;
+        padding: 24px;
+        border-radius: 8px;
+        color: #fff;
+        text-align: center;
+        width: 320px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+        font-family: sans-serif;
+      }
+      #token-box input { width: 100%; padding: 8px 10px; margin-top: 10px; border-radius: 4px; border: 1px solid #333; background: #07101a; color: #fff; }
+      #token-box button { margin-top: 12px; padding: 8px 12px; border-radius: 4px; border: none; background: #2e8bff; color: #fff; cursor: pointer; }
+      #token-msg { margin-top: 8px; color: #ff8b8b; font-size: 13px; min-height: 16px; }
+    </style>
+
+    <div id="token-overlay">
+      <div id="token-box">
+        <div style="font-size:18px; font-weight:600;">请输入访问 Token</div>
+        <div style="font-size:12px; color:#9aa6b2; margin-top:6px;">请输入既定 token 后进入游戏</div>
+        <input id="token-input" placeholder="Token" autocomplete="off" />
+        <button id="token-submit">进入游戏</button>
+        <div id="token-msg"></div>
+      </div>
+    </div>
+
+    <script>
+      function setupMobileStyle() {
+        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+          var meta = document.createElement('meta');
+          meta.name = 'viewport';
+          meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+          document.getElementsByTagName('head')[0].appendChild(meta);
+
+          var canvas = document.querySelector("#unity-canvas");
+          canvas.style.width = "100%";
+          canvas.style.height = "100%";
+          canvas.style.position = "fixed";
+
+          document.body.style.textAlign = "left";
+        }
+      }
+
+      function initUnity() {
+        createUnityInstance(document.querySelector("#unity-canvas"), {
+          dataUrl: "Build/GameMusic.data",
+          frameworkUrl: "Build/GameMusic.framework.js",
+          codeUrl: "Build/GameMusic.wasm",
+          symbolsUrl: "Build/GameMusic.symbols.json",
+          streamingAssetsUrl: "StreamingAssets",
+          companyName: "DefaultCompany",
+          productName: "RhythmMasterProject",
+          productVersion: "1.0",
+        }).then(function (unityInstance) {
+          // Unity initialized
+        }).catch(function (message) {
+          var msg = document.getElementById('token-msg');
+          msg.textContent = '无法初始化 Unity：' + message;
+        });
+      }
+
+      (function(){
+        setupMobileStyle();
+
+        var overlay = document.getElementById('token-overlay');
+        var input = document.getElementById('token-input');
+        var btn = document.getElementById('token-submit');
+        var msg = document.getElementById('token-msg');
+        var VALID_TOKEN = 'abc123';
+
+        function showError(text){ msg.textContent = text; }
+
+        function trySubmit() {
+          var v = input.value.trim();
+          if (v === '') { showError('请输入 token'); return; }
+          if (v === VALID_TOKEN) {
+            overlay.style.display = 'none';
+            initUnity();
+          } else {
+            showError('token 无效');
+          }
+        }
+
+        btn.addEventListener('click', trySubmit);
+        input.addEventListener('keydown', function(e){ if (e.key === 'Enter') trySubmit(); });
+      })();
+    </script>
+  </body>
+</html>
