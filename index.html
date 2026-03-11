@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Unity WebGL Player | RhythmMasterProject</title>
+
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #ffffff;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+        }
+
+        /* 游戏区域：始终保持 16:9，最大化显示 */
+        #unity-wrap {
+            position: relative;
+            width: min(100vw, calc(100vh * 16 / 9));
+            height: min(100vh, calc(100vw * 9 / 16));
+            background: #070816;
+            overflow: hidden;
+        }
+
+        #unity-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            background: #070816;
+        }
+
+        /* ===== 总遮罩：只覆盖游戏区域 ===== */
+        #token-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 9999;
+            transition: opacity 0.35s ease;
+        }
+
+            #token-overlay.hidden {
+                opacity: 0;
+                pointer-events: none;
+            }
+
+        /* ===== token 输入框 ===== */
+        #token-box {
+            background: #0b0e15;
+            padding: 24px;
+            border-radius: 8px;
+            color: #fff;
+            text-align: center;
+            width: 320px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+            font-family: sans-serif;
+            z-index: 2;
+        }
+
+            #token-box input {
+                width: 100%;
+                padding: 8px 10px;
+                margin-top: 10px;
+                border-radius: 4px;
+                border: 1px solid #333;
+                background: #07101a;
+                color: #fff;
+                box-sizing: border-box;
+            }
+
+            #token-box button {
+                margin-top: 12px;
+                padding: 8px 12px;
+                border-radius: 4px;
+                border: none;
+                background: #2e8bff;
+                color: #fff;
+                cursor: pointer;
+            }
+
+        #token-msg {
+            margin-top: 8px;
+            color: #ff8b8b;
+            font-size: 13px;
+            min-height: 16px;
+        }
+
+        /* ===== 加载页 ===== */
+        #loading-screen {
+            display: none;
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            background: #050714;
+            font-family: sans-serif;
+        }
+
+            #loading-screen.active {
+                display: block;
+            }
+
+        #loading-bg {
+            position: absolute;
+            inset: 0;
+            background: url("TemplateData/loading-bg.png") center center / cover no-repeat;
+        }
+
+        #loading-glow {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, rgba(190, 65, 255, 0.18) 0%, rgba(0,0,0,0) 24%), radial-gradient(circle at center, rgba(78, 125, 255, 0.14) 0%, rgba(0,0,0,0) 32%);
+            pointer-events: none;
+        }
+
+        #loading-center {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -54%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 占位音符。后面可换成真实图片 */
+        #loading-note {
+            width: 14.6%;
+            aspect-ratio: 1 / 1;
+            min-width: 120px;
+            max-width: 210px;
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(64px, 6vw, 108px);
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(135deg, #ff83d1 0%, #8ca4ff 100%);
+            box-shadow: 0 0 18px rgba(255, 120, 210, 0.35), 0 0 32px rgba(120, 150, 255, 0.25);
+            animation: notePulse 1.8s ease-in-out infinite;
+        }
+
+        @keyframes notePulse {
+            0% {
+                transform: scale(1);
+                opacity: 0.92;
+            }
+
+            50% {
+                transform: scale(1.04);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 0.92;
+            }
+        }
+
+        #loading-text {
+            position: absolute;
+            right: 5.4%;
+            bottom: 7.2%;
+            color: #ffffff;
+            font-size: clamp(16px, 2vw, 30px);
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-shadow: 0 0 8px rgba(255,255,255,0.18);
+        }
+
+        #loading-progress-wrap {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 4.2%;
+            height: 4px;
+            width: 100%;
+        }
+
+        #loading-progress-bg {
+            width: 100%;
+            height: 100%;
+            background: rgba(92, 185, 255, 0.18);
+        }
+
+        #loading-progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #42a5ff 0%, #77d3ff 100%);
+            box-shadow: 0 0 12px rgba(66, 165, 255, 0.45);
+            transition: width 0.12s linear;
+        }
+
+        /* 移动端全屏 */
+        .mobile-fullscreen {
+            width: 100vw !important;
+            height: 100vh !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="unity-wrap">
+        <canvas id="unity-canvas" width="1440" height="810" tabindex="-1"></canvas>
+
+        <div id="token-overlay">
+            <div id="token-box">
+                <div style="font-size:18px; font-weight:600;">请输入访问 Token</div>
+                <div style="font-size:12px; color:#9aa6b2; margin-top:6px;">请输入既定 token 后进入游戏</div>
+                <input id="token-input" placeholder="Token" autocomplete="off" />
+                <button id="token-submit">进入游戏</button>
+                <div id="token-msg"></div>
+            </div>
+
+            <div id="loading-screen">
+                <div id="loading-bg"></div>
+                <div id="loading-glow"></div>
+
+                <div id="loading-center">
+                    <div id="loading-note">♪</div>
+                    <!-- 如果后面要用真实音符图，可改成：
+                    <img id="loading-note" src="TemplateData/loading-note.png" alt="loading">
+                    -->
+                </div>
+
+                <div id="loading-text">NOW LOADING...</div>
+
+                <div id="loading-progress-wrap">
+                    <div id="loading-progress-bg">
+                        <div id="loading-progress-fill"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="Build/GameMusic.loader.js"></script>
+
+    <script>
+        function setupMobileStyle() {
+            if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+                const meta = document.createElement('meta');
+                meta.name = 'viewport';
+                meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+                document.head.appendChild(meta);
+
+                const wrap = document.querySelector("#unity-wrap");
+                wrap.classList.add("mobile-fullscreen");
+
+                const canvas = document.querySelector("#unity-canvas");
+                canvas.style.width = "100%";
+                canvas.style.height = "100%";
+                canvas.style.position = "absolute";
+                canvas.style.left = "0";
+                canvas.style.top = "0";
+
+                document.body.style.textAlign = "left";
+            }
+        }
+
+        function setLoadingProgress(progress) {
+            const fill = document.getElementById('loading-progress-fill');
+            const p = Math.max(0, Math.min(1, progress || 0));
+            fill.style.width = (p * 100).toFixed(1) + '%';
+        }
+
+        function showLoadingScreen() {
+            const tokenBox = document.getElementById('token-box');
+            const loadingScreen = document.getElementById('loading-screen');
+
+            tokenBox.style.display = 'none';
+            loadingScreen.classList.add('active');
+            setLoadingProgress(0.02);
+        }
+
+        function hideOverlay() {
+            const overlay = document.getElementById('token-overlay');
+            overlay.classList.add('hidden');
+
+            setTimeout(function () {
+                overlay.style.display = 'none';
+            }, 350);
+        }
+
+        function initUnity() {
+            createUnityInstance(document.querySelector("#unity-canvas"), {
+                dataUrl: "Build/GameMusic.data",
+                frameworkUrl: "Build/GameMusic.framework.js",
+                codeUrl: "Build/GameMusic.wasm",
+                symbolsUrl: "Build/GameMusic.symbols.json",
+                streamingAssetsUrl: "StreamingAssets",
+                companyName: "DefaultCompany",
+                productName: "RhythmMasterProject",
+                productVersion: "1.0",
+            }, function (progress) {
+                const displayProgress = 0.08 + progress * 0.92;
+                setLoadingProgress(displayProgress);
+            }).then(function () {
+                setLoadingProgress(1);
+
+                setTimeout(function () {
+                    hideOverlay();
+                }, 250);
+            }).catch(function (message) {
+                const tokenBox = document.getElementById('token-box');
+                const loadingScreen = document.getElementById('loading-screen');
+                const msg = document.getElementById('token-msg');
+
+                loadingScreen.classList.remove('active');
+                tokenBox.style.display = 'block';
+                msg.textContent = '无法初始化 Unity：' + message;
+            });
+        }
+
+        (function () {
+            setupMobileStyle();
+
+            const input = document.getElementById('token-input');
+            const btn = document.getElementById('token-submit');
+            const msg = document.getElementById('token-msg');
+            const VALID_TOKEN = 'abc123';
+            let unityStarted = false;
+
+            function showError(text) {
+                msg.textContent = text || '';
+            }
+
+            function trySubmit() {
+                const v = input.value.trim();
+
+                if (v === '') {
+                    showError('请输入 token');
+                    return;
+                }
+
+                if (v !== VALID_TOKEN) {
+                    showError('token 无效');
+                    return;
+                }
+
+                if (unityStarted) return;
+                unityStarted = true;
+
+                showError('');
+                showLoadingScreen();
+
+                requestAnimationFrame(function () {
+                    requestAnimationFrame(function () {
+                        initUnity();
+                    });
+                });
+            }
+
+            btn.addEventListener('click', trySubmit);
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') trySubmit();
+            });
+        })();
+    </script>
+</body>
+</html>
