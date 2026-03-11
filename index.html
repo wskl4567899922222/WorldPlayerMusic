@@ -134,22 +134,18 @@
             justify-content: center;
         }
 
-        /* 占位音符。后面可换成真实图片 */
+        /* 真实音符图 */
         #loading-note {
-            width: 14.6%;
-            aspect-ratio: 1 / 1;
-            min-width: 120px;
-            max-width: 210px;
-            border-radius: 28px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: clamp(64px, 6vw, 108px);
-            font-weight: bold;
-            color: #fff;
-            background: linear-gradient(135deg, #ff83d1 0%, #8ca4ff 100%);
-            box-shadow: 0 0 18px rgba(255, 120, 210, 0.35), 0 0 32px rgba(120, 150, 255, 0.25);
+            width: 18%;
+            max-width: 685px;
+            min-width: 685px;
+            height: auto;
+            display: block;
+            object-fit: contain;
+            filter: drop-shadow(0 0 18px rgba(255, 120, 210, 0.35)) drop-shadow(0 0 32px rgba(120, 150, 255, 0.25));
             animation: notePulse 1.8s ease-in-out infinite;
+            user-select: none;
+            -webkit-user-drag: none;
         }
 
         @keyframes notePulse {
@@ -229,10 +225,7 @@
                 <div id="loading-glow"></div>
 
                 <div id="loading-center">
-                    <div id="loading-note">♪</div>
-                    <!-- 如果后面要用真实音符图，可改成：
                     <img id="loading-note" src="TemplateData/loading-note.png" alt="loading">
-                    -->
                 </div>
 
                 <div id="loading-text">NOW LOADING...</div>
